@@ -9,6 +9,8 @@ license = "LGPL-2.1-only OR BSD-2-Clause"
 [dependencies]
 anyhow = "1.0.69"
 libbpf-rs = "0.19.1"
+libc = "0.2.139"
+plain = "0.2.3"
 
 [build-dependencies]
 libbpf-cargo = "0.13.1"
