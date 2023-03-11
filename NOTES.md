@@ -60,3 +60,23 @@ Libpf is also embedded into the application, there is no requirement of bcc / li
 
 For simple programs, it probably won't make a huge difference than using BCC, but I think the pay off comes from more complex applications. It allows you
 to focus on your goal, instead of worrying if a field is now at offset 24 instead of 16.
+
+
+## Why Compute is interested in leveraging BPF
+
+In Compute, we are extremely interested in observability. From monitoring the number of pods running in a cluster, to the number of retransmitted TCP segments in a given node, we are always observing
+the state of the platform.
+
+This talk came from the fact we don't have good metrics around networking. Specifically at the pod level. While we can easily tell (as mentioned above) the number of TCP retransmits occuring on a node,
+we can't tell which pod is affected.
+
+We have a monitor called `node_network_bad` (TODO: confirm name) which, when it fires, the node is drained and the problem, though unknown, goes away.
+
+Trying to retroactively infer what went wrong is a crapshoot, the amount of noise our clusters generate is huge (10k logs per minute, TODO confirm), and our metrics often don't reveal anything interesting.
+What doesn't help is when a node is drained, there is often an uptick in network related errors (as connections are closing, being refused etc). It's an ocean of red herrings!
+
+Imagine if we could introspect the number of TCP SYNs vs a count of TCP SYN-ACKs per pod. It'd give us the tools to only drain a node if all pods are affected, or to
+evict a single pod instead.
+
+We think that libbpf will give us the portability to run these tools in our clusters as daemonsets. Without spending too much time ensuring that each kernel version change won't break anything.
+
