@@ -39,7 +39,7 @@ If we wanted to simply count the amount of times a kernel function was called, w
 
 ## How does libbpf / CO-RE help?
 
-libbpf / CO-RE, in short, makes it easier for the developer to deal with kernel changes.
+libbpf / CO-RE, in short, makes it easier to write portable BPF applications.
 
 The RE of CO-RE means RElocatable. bpftools can generate a headers file (vmlinux.h) which contains all the BTF definitions for a given kernel. This is portable, plus
 it exposes types which are not normally exposed by the linux-headers.
