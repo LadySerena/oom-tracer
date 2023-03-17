@@ -3,7 +3,7 @@ mod Oomkill {
 }
 use anyhow::bail;
 use anyhow::Result;
-use libbpf_rs::PerfBufferBuilder;
+use libbpf_rs::RingBufferBuilder;
 use plain::Plain;
 use std::time::Duration;
 use time::macros::*;
@@ -25,7 +25,8 @@ fn bump_memlock_rlimit() -> Result<()> {
     Ok(())
 }
 
-fn handle_oom_kill(_cpu: i32, data: &[u8]) {
+fn handle_oom_kill(data: &[u8]) -> i32 {
+    println!("handling oomkill");
     let mut event = oomkill_bss_types::event::default();
     plain::copy_from_bytes(&mut event, data).expect("data buffer too short");
 
@@ -38,6 +39,7 @@ fn handle_oom_kill(_cpu: i32, data: &[u8]) {
     };
 
     println!("{:8} {:<7} {:<20}", now, event.pid, event.highwater_rss);
+    0
 }
 
 fn handle_lost_oom_kill(cpu: i32, count: u64) {
@@ -57,14 +59,13 @@ fn main() -> Result<()> {
     println!("Successfully started! Please run `sudo cat /sys/kernel/debug/tracing/trace_pipe` to see output of the BPF programs.\n");
 
     // map is the same name as in the bpf.c file
-    let perf = PerfBufferBuilder::new(skel.maps_mut().rb())
-        .sample_cb(handle_oom_kill)
-        .lost_cb(handle_lost_oom_kill)
-        .build()?;
+    let mut builder = RingBufferBuilder::new();
+    builder.add(skel.maps_mut().rb(), handle_oom_kill).unwrap();
+    let ring_buffer = builder.build().unwrap();
 
     println!("can't get here");
 
     loop {
-        perf.poll(Duration::from_millis(100))?;
+        ring_buffer.poll(Duration::from_millis(100))?;
     }
 }
