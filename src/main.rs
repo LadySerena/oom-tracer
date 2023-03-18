@@ -5,6 +5,8 @@ use anyhow::bail;
 use anyhow::Result;
 use libbpf_rs::RingBufferBuilder;
 use plain::Plain;
+use procfs::process::MountInfo;
+use procfs::process::Process;
 use std::time::Duration;
 use time::macros::*;
 use time::OffsetDateTime;
@@ -29,7 +31,10 @@ fn handle_oom_kill(data: &[u8]) -> i32 {
     println!("handling oomkill");
     let mut event = oomkill_bss_types::event::default();
     plain::copy_from_bytes(&mut event, data).expect("data buffer too short");
-
+    let process_info = Process::new(event.pid).unwrap();
+    let cmdline = process_info.cmdline().unwrap();
+    let mounts = process_info.cgroups().unwrap();
+    // let mounts = process_info.mountinfo().unwrap_or_else(| | "None".to_string())
     let now = if let Ok(now) = OffsetDateTime::now_local() {
         let format = format_description!("[hour]:[minute]:[second]");
         now.format(&format)
@@ -38,7 +43,13 @@ fn handle_oom_kill(data: &[u8]) -> i32 {
         "00:00:00".to_string()
     };
 
-    println!("{:8} {:<7} {:<20}", now, event.pid, event.highwater_rss);
+    println!(
+        "{:8} {:<7} {:<7} {:<7} {:<20} {:?}",
+        now, event.pid, event.ppid, event.cgroup, event.highwater_rss, cmdline
+    );
+    for group in mounts.iter() {
+        println!("cgroup: {}", group.pathname)
+    }
     0
 }
 

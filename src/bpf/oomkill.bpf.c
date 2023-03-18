@@ -55,12 +55,12 @@ int handle_tp(struct  trace_event_raw_mark_victim *ctx) {
 
   // cast the random ass u64 we get as a pointer to a task struct. don't worry kids we're gonna do way more memory crimes.
   task = (struct task_struct *)bpf_get_current_task();
-
   // ok now we're gonna do a read from this struct using the read methods. this let's us not have to fuss with struct reordering.
   e->pid = pid;
   e->ppid = BPF_CORE_READ(task, real_parent, tgid);
   e->highwater_rss = BPF_CORE_READ(task, mm, hiwater_rss);
   e->exit_code = BPF_CORE_READ(task, exit_code);
+  e->cgroup = bpf_get_current_cgroup_id();
 
   // yeet our event into userspace
 
